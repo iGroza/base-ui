@@ -1,15 +1,15 @@
 {
   "name": "Base",
   "short_name": "Base",
-  "id": "/base-ui/",
-  "start_url": "/base-ui/",
-  "scope": "/base-ui/",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#071018",
   "theme_color": "#9eb8d0",
   "icons": [
     {
-      "src": "/base-ui/__grok/icon-180.png",
+      "src": "/__grok/icon-180.png",
       "sizes": "180x180",
       "type": "image/png"
     }
