@@ -13,7 +13,7 @@ import {
   normalizeTask,
   normalizeTeammate,
 } from "./normalize";
-import type { BaseAccount, FileValue, Retailer, Task, TasksPayload, Teammate } from "./types";
+import type { BaseAccount, FileValue, Retailer, RowComment, Task, TasksPayload, Teammate } from "./types";
 
 type Page<T> = {
   count: number;
@@ -43,10 +43,6 @@ function baserowAuthorization(token: string) {
   // A database token is not a JWT. Base accepts it only as `Authorization: Token …`.
   // `Bearer` is ignored, which is why comment calls returned "credentials were not provided".
   return raw.split(".").length === 3 ? `JWT ${raw}` : `Token ${raw}`;
-}
-
-function isDatabaseToken(token: string) {
-  return !baserowAuthorization(token).startsWith("JWT ");
 }
 
 function authHeaders(token?: string): Array<Record<string, string>> {
@@ -420,9 +416,6 @@ export async function createRowComment(
   try {
     const token = resolveToken();
     if (!token) return { ok: false, error: TOKEN_REQUIRED };
-    // Row comments accept only a user JWT. A database token is valid for rows,
-    // and sending it here always comes back as missing credentials.
-    if (isDatabaseToken(token)) return { ok: false, error: "Комментарии задачи пишутся в поле" };
     await sendJson(
       `${BASEROW_ORIGIN}/api/row_comments/${TABLES.backlog}/${rowId}/`,
       token,
@@ -434,6 +427,56 @@ export async function createRowComment(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Не удалось опубликовать комментарий",
+    };
+  }
+}
+
+type RawRowComment = {
+  id: number;
+  first_name?: string;
+  message?: { content?: Array<{ content?: Array<{ text?: string }> }> };
+  created_on?: string;
+  edited?: boolean;
+  trashed?: boolean;
+};
+
+function rowCommentText(message: RawRowComment["message"]) {
+  return (message?.content ?? [])
+    .map((paragraph) => (paragraph.content ?? []).map((part) => part.text ?? "").join(""))
+    .join("\n")
+    .trim();
+}
+
+export async function fetchRowComments(rowId: number): Promise<{
+  rowId: number;
+  comments: RowComment[];
+  error?: string;
+}> {
+  const token = resolveToken();
+  if (!token) return { rowId, comments: [] };
+  try {
+    const payload = await getJson<Page<RawRowComment> | RawRowComment[]>(
+      `${BASEROW_ORIGIN}/api/row_comments/${TABLES.backlog}/${rowId}/`,
+      token,
+    );
+    const rows = Array.isArray(payload) ? payload : payload.results;
+    return {
+      rowId,
+      comments: rows
+        .filter((comment) => !comment.trashed)
+        .map((comment) => ({
+          id: comment.id,
+          author: comment.first_name?.trim() || "Base",
+          message: rowCommentText(comment.message),
+          createdOn: comment.created_on ?? null,
+          edited: Boolean(comment.edited),
+        })),
+    };
+  } catch (error) {
+    return {
+      rowId,
+      comments: [],
+      error: error instanceof Error ? error.message : "Не удалось загрузить комментарии Base",
     };
   }
 }

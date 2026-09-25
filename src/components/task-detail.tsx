@@ -24,7 +24,7 @@ import { Chip } from "@/components/ui/chip";
 import { MenuSelect } from "@/components/ui/menu-select";
 import { PRIORITIES, STATUSES, TYPES } from "@/lib/baserow/schema";
 import { totalSp } from "@/lib/baserow/normalize";
-import type { FileValue, Task } from "@/lib/baserow/types";
+import type { FileValue, RowComment, Task } from "@/lib/baserow/types";
 import { chronologicalComments, commentBlocks, removeComment } from "@/lib/baserow/comment";
 import { fitInside, type MediaBox } from "@/lib/media-fit";
 import { displayTitle, formatDate, formatDateTime, richTextToHtml } from "@/lib/utils";
@@ -34,6 +34,7 @@ import { toast } from "sonner";
 
 export function TaskDetail({
   task,
+  rowComments,
   canEdit,
   people,
   clients,
@@ -43,6 +44,7 @@ export function TaskDetail({
   uploadingAssets,
 }: {
   task: Task;
+  rowComments: RowComment[];
   canEdit: boolean;
   people: { id: number; name: string }[];
   clients: { id: number; name: string }[];
@@ -454,6 +456,25 @@ export function TaskDetail({
                   Добавить
                 </button>
               </form>
+            ) : null}
+            {rowComments.length ? (
+              <div className="mt-4 border-t border-border/60 pt-3">
+                <h4 className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-fg-subtle">
+                  Комментарии Base
+                </h4>
+                <div className="space-y-2">
+                  {rowComments.map((comment) => (
+                    <article key={comment.id} className="rounded-md bg-surface/55 px-3 py-2">
+                      <div className="mb-1 flex items-center gap-2 text-[11px] text-fg-subtle">
+                        <span className="font-medium text-fg-muted">{comment.author}</span>
+                        <span>{comment.createdOn ? formatDateTime(comment.createdOn) : ""}</span>
+                        {comment.edited ? <span>изменён</span> : null}
+                      </div>
+                      <p className="whitespace-pre-wrap text-[13px] leading-5 text-fg">{comment.message}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
             ) : null}
           </section>
 

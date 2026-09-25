@@ -21,6 +21,14 @@ export type FileValue = {
   };
 };
 
+export type RowComment = {
+  id: number;
+  author: string;
+  message: string;
+  createdOn: string | null;
+  edited: boolean;
+};
+
 export type Task = {
   id: number;
   incrId: number | null;

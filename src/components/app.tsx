@@ -39,6 +39,7 @@ import {
   fetchTasks,
   fetchTeam,
   publishTaskComment,
+  fetchRowComments,
   uploadTaskAssets,
   updateTaskFields,
 } from "@/lib/baserow/client";
@@ -187,6 +188,23 @@ export function App({
   const opened = openKeys
     .map((key) => findTask(tasks, key) ?? missingQueries.find((query) => query.data?.task && taskKeyOf(query.data.task) === key)?.data?.task ?? null)
     .filter((task): task is Task => task != null);
+  const rowCommentQueries = useQueries({
+    queries: opened
+      .filter((task) => task.id > 0)
+      .map((task) => ({
+        queryKey: ["row-comments", task.id],
+        queryFn: () => fetchRowComments(task.id),
+        enabled: store.hydrated && unlocked,
+        refetchInterval: 60_000,
+        refetchIntervalInBackground: true,
+      })),
+  });
+  const rowCommentsByTask = new Map(
+    rowCommentQueries
+      .map((query) => query.data)
+      .filter((result): result is NonNullable<typeof result> => Boolean(result))
+      .map((result) => [result.rowId, result.comments]),
+  );
 
   function requestFocus(key: string) {
     setFocusRequest((current) => ({ key, tick: (current?.tick ?? 0) + 1 }));
@@ -782,6 +800,7 @@ export function App({
                 return (
                   <TaskDetail
                     task={task}
+                    rowComments={rowCommentsByTask.get(task.id) ?? []}
                     canEdit={canEdit}
                     saving={(updateMutation.isPending || commentSaving) && synced}
                     uploadingAssets={assetUploading}

@@ -204,7 +204,7 @@ export function SettingsDialog({
           </button>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-fg-subtle">
-          Токен базы из настроек Database tokens. Пустое поле отключает базу.
+          Database token подключает данные доски. Пустое поле отключает базу.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
