@@ -311,17 +311,42 @@ export function App({
     const current = tasks.find((item) => item.id === id);
     const commentOnly =
       Object.keys(input.fields).length === 1 &&
-      typeof input.fields[F.clientComments] === "string" &&
-      Boolean(input.commentEntry);
-    store.patchTask(id, input.patch);
+      typeof input.fields[F.clientComments] === "string";
     if (!synced) {
+      store.patchTask(id, input.patch);
       toast.success("Сохранено на этом устройстве");
       return true;
     }
     if (id < 0) return true;
     if (commentOnly) {
+      queryClient.setQueriesData<TasksPayload>({ queryKey: ["tasks"] }, (cached) =>
+        cached
+          ? { ...cached, tasks: cached.tasks.map((task) => (task.id === id ? { ...task, ...input.patch } : task)) }
+          : cached,
+      );
       setCommentSaving(true);
       try {
+        if (!input.commentEntry) {
+          const result = await updateMutation.mutateAsync({ id, fields: input.fields });
+          if (result.error || !result.task) {
+            queryClient.setQueriesData<TasksPayload>({ queryKey: ["tasks"] }, (cached) =>
+              cached
+                ? { ...cached, tasks: cached.tasks.map((task) => (task.id === id ? current ?? task : task)) }
+                : cached,
+            );
+            toast.error(result.error ?? "Не сохранилось в Base");
+            return false;
+          }
+          queryClient.setQueriesData<TasksPayload>({ queryKey: ["tasks"] }, (cached) =>
+            cached
+              ? { ...cached, tasks: cached.tasks.map((task) => (task.id === id ? result.task! : task)) }
+              : cached,
+          );
+          store.clearTaskPatchFields(id, ["clientComments"]);
+          toast.success("Комментарий удалён из Base");
+          void queryClient.invalidateQueries({ queryKey: ["tasks"] });
+          return true;
+        }
         const published = await publishTaskComment({
           id,
           next: String(input.fields[F.clientComments]),
@@ -330,7 +355,11 @@ export function App({
           solution: current?.solution ?? "",
         });
         if (!published.ok) {
-          store.patchTask(id, { clientComments: current?.clientComments ?? "" });
+          queryClient.setQueriesData<TasksPayload>({ queryKey: ["tasks"] }, (cached) =>
+            cached
+              ? { ...cached, tasks: cached.tasks.map((task) => (task.id === id ? current ?? task : task)) }
+              : cached,
+          );
           toast.error(published.error);
           return false;
         }
@@ -342,7 +371,7 @@ export function App({
               }
             : cached,
         );
-        store.clearTaskPatchFields(id, Object.keys(published.patch) as (keyof Task)[]);
+        store.clearTaskPatchFields(id, ["clientComments", "solution"]);
         toast.success(published.notice);
         void queryClient.invalidateQueries({ queryKey: ["tasks"] });
         return true;
@@ -350,6 +379,7 @@ export function App({
         setCommentSaving(false);
       }
     }
+    store.patchTask(id, input.patch);
     const result = await updateMutation.mutateAsync({ id, fields: input.fields });
     if (result.error || !result.task) {
       toast.error(result.error ?? "Не сохранилось в Base — оставлено на устройстве");

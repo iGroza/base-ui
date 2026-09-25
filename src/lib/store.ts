@@ -39,7 +39,14 @@ export function mergeLocalTasks(
 ): Task[] {
   const patched = remote.map((task) => {
     const extra = patches[String(task.id)];
-    return extra && !remoteHasCaughtUp(task, extra) ? { ...task, ...extra } : task;
+    if (!extra) return task;
+
+    // Comments are shared through Base. A previous local optimistic value must
+    // never hide a newer value received from another dashboard or Base itself.
+    const { clientComments: _clientComments, updated: _updated, ...fields } = extra;
+    if (Object.keys(fields).length === 0) return task;
+    const patch = extra.updated === undefined ? fields : { ...fields, updated: extra.updated };
+    return !remoteHasCaughtUp(task, patch) ? { ...task, ...patch } : task;
   });
   const seen = new Set(patched.map((task) => task.id));
   const extras = adds
