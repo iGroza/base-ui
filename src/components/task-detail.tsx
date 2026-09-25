@@ -17,6 +17,7 @@ import {
   Play,
   Plus,
   Save,
+  Trash2,
   X,
 } from "lucide-react";
 import { Chip } from "@/components/ui/chip";
@@ -24,7 +25,7 @@ import { MenuSelect } from "@/components/ui/menu-select";
 import { PRIORITIES, STATUSES, TYPES } from "@/lib/baserow/schema";
 import { totalSp } from "@/lib/baserow/normalize";
 import type { FileValue, Task } from "@/lib/baserow/types";
-import { chronologicalComments } from "@/lib/baserow/comment";
+import { chronologicalComments, commentBlocks, removeComment } from "@/lib/baserow/comment";
 import { fitInside, type MediaBox } from "@/lib/media-fit";
 import { displayTitle, formatDate, formatDateTime, richTextToHtml } from "@/lib/utils";
 import { baseTaskUrl, siteTaskUrl } from "@/lib/task-links";
@@ -77,6 +78,7 @@ export function TaskDetail({
   const [copying, setCopying] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const media = useMemo(() => collectMedia(task), [task]);
+  const commentsByEntry = useMemo(() => commentBlocks(comments), [comments]);
   const assetInputRef = useRef<HTMLInputElement>(null);
   const [narrow, setNarrow] = useState(false);
   const [manual, setManual] = useState<"open" | "closed" | null>(null);
@@ -360,14 +362,44 @@ export function TaskDetail({
                 rows={5}
                 className="glass-input w-full rounded-md px-3 py-2 text-[13px] leading-5"
               />
+            ) : commentsByEntry.length ? (
+              <div className="space-y-2">
+                {commentsByEntry.map((comment, index) => (
+                  <div key={`${index}-${comment.slice(0, 48)}`} className="group/comment relative rounded-md pr-8">
+                    <div
+                      className="reading text-[13px] leading-5 text-fg"
+                      onClick={(event) => openRichImage(event, (src) => openMedia(src, media, setMediaIndex, setViewerOpen))}
+                      dangerouslySetInnerHTML={{ __html: richTextToHtml(comment) }}
+                    />
+                    {canEdit ? (
+                      <button
+                        type="button"
+                        aria-label="Удалить комментарий"
+                        title="Удалить комментарий"
+                        disabled={saving}
+                        onClick={() => {
+                          const previous = comments;
+                          const next = removeComment(comments, index);
+                          setComments(next);
+                          void Promise.resolve(
+                            onSave({
+                              fields: { field_7251: next },
+                              patch: { clientComments: next },
+                            }),
+                          ).then((saved) => {
+                            if (saved === false) setComments(previous);
+                          });
+                        }}
+                        className="absolute top-0 right-0 grid size-7 place-items-center rounded-md text-fg-subtle hover:bg-red-500/10 hover:text-red-600 disabled:opacity-40"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             ) : (
-              <div
-                className="reading text-[13px] leading-5 text-fg"
-                onClick={(event) => openRichImage(event, (src) => openMedia(src, media, setMediaIndex, setViewerOpen))}
-                dangerouslySetInnerHTML={{
-                  __html: comments.trim() ? richTextToHtml(chronologicalComments(comments)) : "Комментариев пока нет",
-                }}
-              />
+              <p className="text-[13px] leading-5 text-fg">Комментариев пока нет</p>
             )}
             {canEdit ? (
               <form
@@ -1138,4 +1170,3 @@ function NumField({
     </label>
   );
 }
-

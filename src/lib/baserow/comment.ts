@@ -61,13 +61,19 @@ export function chronologicalComments(text: string) {
   return [...plain, ...stamped.map((item) => item.block)].join("\n\n");
 }
 
-function commentBlocks(text: string) {
+export function commentBlocks(text: string) {
   const normalized = normalizeComment(text);
   if (!normalized) return [];
   return normalized
     .split(/\n{2,}(?=—\s)/)
     .map((block) => block.trim())
     .filter(Boolean);
+}
+
+export function removeComment(text: string, index: number) {
+  const blocks = commentBlocks(text);
+  if (index < 0 || index >= blocks.length) return chronologicalComments(text);
+  return chronologicalComments(blocks.filter((_, itemIndex) => itemIndex !== index).join("\n\n"));
 }
 
 function commentSortKey(block: string) {

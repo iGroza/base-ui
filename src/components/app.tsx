@@ -122,6 +122,8 @@ export function App({
     queryFn: () => fetchAccount(),
     enabled: store.hydrated,
     staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
   });
   const unlocked = accountQuery.data?.connected === true;
 
@@ -135,6 +137,8 @@ export function App({
       }),
     enabled: store.hydrated && unlocked,
     placeholderData: keepPreviousData,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
   });
 
   const retailersQuery = useQuery({
@@ -142,6 +146,8 @@ export function App({
     queryFn: () => fetchRetailers(),
     enabled: store.hydrated && unlocked,
     staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
   });
 
   const teamQuery = useQuery({
@@ -149,6 +155,8 @@ export function App({
     queryFn: () => fetchTeam(),
     enabled: store.hydrated && unlocked,
     staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
   });
 
   const payload = tasksQuery.data;
@@ -172,6 +180,8 @@ export function App({
       queryKey: ["one-task", key],
       queryFn: () => fetchOneTask(key),
       enabled: store.hydrated && unlocked,
+      refetchInterval: 60_000,
+      refetchIntervalInBackground: true,
     })),
   });
   const opened = openKeys

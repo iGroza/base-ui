@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { appendComment, chronologicalComments, commentDocument, commentLanded } from "./comment.ts";
+import { appendComment, chronologicalComments, commentBlocks, commentDocument, commentLanded, removeComment } from "./comment.ts";
 
 describe("comment publishing", () => {
   it("builds a prose document Base can store as a row comment", () => {
@@ -32,5 +32,11 @@ describe("comment publishing", () => {
       appendComment(reversed, "— 25 сент., 09:01\nещё"),
       "— 23 сент., 18:25\nраньше\n\n— 24 сент., 22:44\ntest\n\n— 25 сент., 09:01\nещё",
     );
+  });
+
+  it("splits and removes one comment without changing the others", () => {
+    const comments = "— 23 сент., 18:25\nпервый\n\n— 24 сент., 22:44\nвторой";
+    assert.deepEqual(commentBlocks(comments), ["— 23 сент., 18:25\nпервый", "— 24 сент., 22:44\nвторой"]);
+    assert.equal(removeComment(comments, 0), "— 24 сент., 22:44\nвторой");
   });
 });
