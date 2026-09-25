@@ -39,7 +39,7 @@ export function mergeLocalTasks(
 ): Task[] {
   const patched = remote.map((task) => {
     const extra = patches[String(task.id)];
-    return extra ? { ...task, ...extra } : task;
+    return extra && !remoteHasCaughtUp(task, extra) ? { ...task, ...extra } : task;
   });
   const seen = new Set(patched.map((task) => task.id));
   const extras = adds
@@ -49,6 +49,12 @@ export function mergeLocalTasks(
       return extra ? { ...task, ...extra } : task;
     });
   return [...extras, ...patched];
+}
+
+function remoteHasCaughtUp(task: Task, patch: Partial<Task>) {
+  const remoteUpdated = Date.parse(task.updated ?? "");
+  const localUpdated = Date.parse(patch.updated ?? "");
+  return Number.isFinite(remoteUpdated) && Number.isFinite(localUpdated) && remoteUpdated >= localUpdated;
 }
 
 export function withoutTaskPatchFields(

@@ -277,6 +277,12 @@ export function App({
             toast.error(result.error ?? "Не сохранилось в Base — оставлено на устройстве");
             return;
           }
+          queryClient.setQueriesData<TasksPayload>({ queryKey: ["tasks"] }, (cached) =>
+            cached
+              ? { ...cached, tasks: cached.tasks.map((task) => (task.id === taskId ? result.task! : task)) }
+              : cached,
+          );
+          store.clearTaskPatchFields(taskId, ["status"]);
           toast.success("Сохранено в Base");
         },
       },
@@ -339,6 +345,12 @@ export function App({
       toast.error(result.error ?? "Не сохранилось в Base — оставлено на устройстве");
       return false;
     }
+    queryClient.setQueriesData<TasksPayload>({ queryKey: ["tasks"] }, (cached) =>
+      cached
+        ? { ...cached, tasks: cached.tasks.map((task) => (task.id === id ? result.task! : task)) }
+        : cached,
+    );
+    store.clearTaskPatchFields(id, Object.keys(input.patch) as (keyof Task)[]);
     toast.success("Сохранено в Base");
     return true;
   }
